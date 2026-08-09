@@ -1,0 +1,25 @@
+{
+  "imports": {
+    "pyodide": "npm:pyodide@^0.29.3",
+    "just-bash": "npm:just-bash@^2.14.0",
+    "zod": "npm:zod@^3.23.8",
+    "@std/media-types": "jsr:@std/media-types@^1.0.0",
+    "@std/encoding": "jsr:@std/encoding@^1.0.0",
+    "@std/streams": "jsr:@std/streams@^1.0.0",
+    "@std/fs": "jsr:@std/fs@^1.0.0",
+    "@std/path": "jsr:@std/path@^1.0.0"
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 80,
+    "indentWidth": 2,
+    "singleQuote": true,
+    "proseWrap": "preserve"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"],
+      "exclude": ["no-explicit-any", "no-empty", "prefer-const"]
+    }
+  }
+}
