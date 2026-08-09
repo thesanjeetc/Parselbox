@@ -24,19 +24,21 @@ Two RPC flows: host→sandbox `exec` (run code), sandbox→host `callback` (a na
 ## Commands
 
 - `uv sync` — setup (Deno ≥2.x must be installed separately)
-- `make test` — coverage + pytest over `tests/` (excludes bench); tests boot real sandboxes, ~4 min
-- `uv run pytest tests/test_foo.py -q` — one file; `make bench` — benchmarks; `make check` — lint
+- `make test` — coverage + pytest over `tests/` (excludes bench); boots real sandboxes, ~7 min
+- `uv run pytest tests/test_foo.py -q` — run one file; `make bench` — benchmarks
+- `make check` — the CI gate: `deno lint` + `ruff` + `ruff format --check`, then `make test`. CI runs the same lint/format hooks via pre-commit.
 
 ## Gotchas (learned the hard way)
 
-- **`bootstrap.py` runs inside Pyodide**, not on the host — only stdlib + pyodide/js imports; it ships in the wheel as source and is re-read at sandbox boot (its hash keys the Pyodide snapshot cache).
-- **`prompt.py` strings are NOT `.format()`ed** — write literal single braces. Doubled `{{ }}` will reach agents verbatim (this was a real bug).
-- **Bytes conventions**: across the host RPC, `bytes` are `{"__b64__": ...}` (encode: `bridge._encode_bytes`; decode: `models._deserialize` and `ParselboxRpc._b64_hook`). In-process JS↔Python, typed arrays convert to `bytes` via a stringify replacer (`__pbx_bytes__`). Keep both directions symmetric when touching serialization.
-- **Local test skew**: CI pins Deno 2.5.x; a newer local Deno can fail `tests/test_help.py` en masse. Trust CI for those.
+- **`bootstrap.py` runs inside Pyodide**, not on the host — only stdlib + pyodide/js imports. It ships in the wheel as source and is re-read at boot; its hash keys the Pyodide snapshot cache, so any edit invalidates the cache.
+- **`prompt.py` strings are NOT `.format()`ed** — write literal single braces. Doubled `{{ }}` reach agents verbatim (this was a real bug).
+- **Bytes over the boundary**: across the host RPC, `bytes` are `{"__b64__": ...}` (encode: `bridge._encode_bytes`; decode: `models._deserialize` and `ParselboxRpc._b64_hook`). In-process JS↔Python, typed arrays convert to `bytes` via a stringify replacer (`__pbx_bytes__`). Keep both directions symmetric when touching serialization.
+- **`sandbox/*.ts` is Deno, not Node** — `deno.jsonc` sets `singleQuote` and lints on `recommended`. Run `deno fmt` / `deno lint` (or `make check`) before committing or the pre-commit gate fails in CI.
 - Bridges connect lazily in `Parselbox.connect()`; a bridge that fails to connect logs an error but doesn't crash the sandbox.
 
 ## Conventions
 
-- One logical change per commit; README examples must be **runnable as printed** — verify end-to-end before changing them (both Quick Start examples run live with `GITHUB_TOKEN` / `OPENAI_API_KEY`).
+- One logical change per commit. README examples must be **runnable as printed** — verify end-to-end before changing them (both Quick Start examples run live with `GITHUB_TOKEN` / `OPENAI_API_KEY`).
 - Every user-facing feature stays documented in README.md; each User Guide chapter links its runnable twin in `examples/parselbox-basics/`.
-- `.claude/skills/parselbox/` — skill for *using* Parselbox; keep it lean, `sbx.help()` (prompt.py) is the canonical guide.
+- `.claude/skills/parselbox/` — skill for *using* Parselbox; keep it lean. `sbx.help()` (prompt.py) is the canonical agent guide.
+- Release: bump `version` in `pyproject.toml`, then `git tag vX.Y.Z && git push --tags` — CI publishes to PyPI on `v*` tags.
