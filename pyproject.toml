@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "parselbox"
 version = "0.1.0"
-description = "Secure Python sandbox for AI agents — tools as code, MCP bridging, JS interop, generative UI."
+description = "A secure Python sandbox where agents call tools as code, explore schemas on demand, and generate UIs on the fly — with a disk-backed workspace, packages, and networking built in."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "MIT License" }
