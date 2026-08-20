@@ -20,7 +20,7 @@
   </a>
 </h4>
 
-Parselbox is a secure Python sandbox where agents call tools as code, explore schemas on demand, and generate UIs on the fly — with a disk-backed workspace, packages, and networking built in. One process, no containers — powered by [Deno](https://deno.com/) and [Pyodide](https://pyodide.org/en/stable/).
+Parselbox is an embeddable Python sandbox where AI agents call tools as code — MCP servers, APIs, and shells become native Python objects. Disk-backed workspace, packages, and networking built in; a single process powered by [Deno](https://deno.com/) and [Pyodide](https://pyodide.org/en/stable/).
 
 https://github.com/user-attachments/assets/d4e43d16-3aa3-4e29-83c7-a1d3885b8045
 
@@ -30,7 +30,7 @@ https://github.com/user-attachments/assets/d4e43d16-3aa3-4e29-83c7-a1d3885b8045
 ## Features
 
 #### 🔒 Secure Isolation
-No containers, no VMs — just a single, lightweight Deno + Pyodide process. Deno permissions, memory caps, timeouts, network allowlists. Snapshot caching and crash recovery.
+No containers, no VMs — just a single, lightweight Deno + Pyodide process (~160 MB). Deno permissions, memory caps, timeouts, network allowlists. Snapshot caching and crash recovery.
 
 #### 🛠️ Tools as Code
 MCP servers, REST + OpenAPI, GraphQL, shell, functions and classes — all native Python objects. Stateful across calls. Pydantic auto-conversion. Credentials stay on the host.
@@ -599,7 +599,7 @@ You can even compile a language to WebAssembly in-sandbox, then `require()` the 
 
 #### `bash()` — Shell Commands
 
-A pure-JavaScript bash over the same virtual filesystem — no real binaries. Pipes and coreutils work, and `curl` is backed by `fetch`. Each call is isolated (`cd`/`export` don't persist); filesystem changes do.
+A pure-JavaScript bash ([just-bash](https://github.com/vercel-labs/just-bash)) over the same workspace. Pipes and coreutils work, and `curl` is backed by `fetch`. Each call is isolated (`cd`/`export` don't persist); filesystem changes do.
 
 ```python
 bash("echo hello > note.txt && cat note.txt | tr a-z A-Z")   # "HELLO"
