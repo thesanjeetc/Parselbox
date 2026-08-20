@@ -36,7 +36,7 @@ No containers, no VMs — just a single, lightweight Deno + Pyodide process (~16
 MCP servers, REST + OpenAPI, GraphQL, shell, functions and classes — all native Python objects. Stateful across calls. Pydantic auto-conversion. Credentials stay on the host.
 
 #### 🐍 Polyglot Runtime
-Full CPython with `js()` interop and auto-proxied callbacks. `require()` for npm, local TypeScript, and `.wasm` modules. `bash()` for shell. Auto-install packages on import.
+Full CPython with `js()` interop — use JS packages as native Python. `require()` for npm, local TypeScript, and `.wasm` modules. Virtual `bash()` for shell. Auto-install packages on import.
 
 #### 📦 WASM Tools
 `require()` any `.wasm` — library exports become Python methods, WASI programs become callable commands; drop one in `bin/` to run it from `bash()` too. In-process, inherits the sandbox's mounts and permissions, installs nothing on the host.
