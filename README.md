@@ -74,6 +74,7 @@ Disk-backed workspace — host mounts (`ro`/`rw`), input files at `/files/`, out
 - [Configuration Reference](#configuration-reference)
 - [Architecture](#architecture)
 - [Security](#security)
+- [Related Work](#related-work)
 
 ## Quick Start
 
@@ -915,3 +916,12 @@ Parselbox's boundary is **Deno's permission system** — the sandbox starts with
 - **Compiled tools (WASI)** — no sockets, so a binary has no network of its own; it sees only the mounts you grant (`ro` enforced by Deno), and a runaway is killed by the execution timeout.
 - **Resource limits** — WASM memory capped per instance at the V8 level (default 2048 MB), JS heap capped, per-execution timeout (default 60s → `KeyboardInterrupt`), auto-reconnect if the Deno process dies.
 - **Context bridge** — only the objects you pass are reachable, and only their public methods; MCP servers expose their full tool set.
+
+## Related Work
+
+- [Code execution with MCP](https://www.anthropic.com/engineering/code-execution-with-mcp) (Anthropic)
+- [Code Mode](https://blog.cloudflare.com/code-mode/) (Cloudflare)
+- [smolagents](https://huggingface.co/docs/smolagents/en/tutorials/secure_code_execution) (Hugging Face)
+- [Deno + Pyodide Sandbox](https://til.simonwillison.net/deno/pyodide-sandbox) (Simon Willison)
+
+Built with [Deno](https://deno.com), [Pyodide](https://pyodide.org), and [just-bash](https://github.com/vercel-labs/just-bash) (Vercel).
