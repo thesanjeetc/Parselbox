@@ -22,7 +22,7 @@
 
 Parselbox is a secure Python sandbox where agents call tools as code, explore schemas on demand, and generate UIs on the fly — with a disk-backed workspace, packages, and networking built in. One process, no containers — powered by [Deno](https://deno.com/) and [Pyodide](https://pyodide.org/en/stable/).
 
-https://github.com/user-attachments/assets/e5cc808f-7d3d-4138-8f81-e59cc0225856
+https://github.com/user-attachments/assets/d4e43d16-3aa3-4e29-83c7-a1d3885b8045
 
 > [!TIP]
 > Drop the [Parselbox MCP](#parselbox-mcp) alongside existing MCP server configurations. Agents instantly get a Python runtime, MCP tools as code, support for skills and a disk-backed workspace.
@@ -30,7 +30,7 @@ https://github.com/user-attachments/assets/e5cc808f-7d3d-4138-8f81-e59cc0225856
 ## Features
 
 #### 🔒 Secure Isolation
-No containers, no VMs — just a single, lightweight Deno + Pyodide process with sub-second startup. Deno permissions, memory caps, timeouts, network allowlists. Snapshot caching and crash recovery.
+No containers, no VMs — just a single, lightweight Deno + Pyodide process. Deno permissions, memory caps, timeouts, network allowlists. Snapshot caching and crash recovery.
 
 #### 🛠️ Tools as Code
 MCP servers, REST + OpenAPI, GraphQL, shell, functions and classes — all native Python objects. Stateful across calls. Pydantic auto-conversion. Credentials stay on the host.
@@ -38,7 +38,7 @@ MCP servers, REST + OpenAPI, GraphQL, shell, functions and classes — all nativ
 #### 🐍 Polyglot Runtime
 Full CPython with `js()` interop and auto-proxied callbacks. `require()` for npm, local TypeScript, and `.wasm` modules. `bash()` for shell. Auto-install packages on import.
 
-#### 📦 WASM Binaries
+#### 📦 WASM Tools
 `require()` any `.wasm` — library exports become Python methods, WASI programs become callable commands; drop one in `bin/` to run it from `bash()` too. In-process, inherits the sandbox's mounts and permissions, installs nothing on the host.
 
 #### ⚡ Background Tasks
@@ -67,11 +67,12 @@ Disk-backed workspace — host mounts (`ro`/`rw`), input files at `/files/`, out
   - [Filesystem Integration](#3-filesystem-integration)
   - [Packages & Networking](#4-packages--networking)
   - [JavaScript Interop](#5-javascript-interop)
-  - [Compiled Tools](#6-compiled-tools)
+  - [WASM Tools](#6-wasm-tools)
   - [Progressive Disclosure](#7-progressive-disclosure)
   - [Generative UI](#8-generative-ui)
   - [Sandbox Hooks](#9-sandbox-hooks)
 - [Configuration Reference](#configuration-reference)
+- [Architecture](#architecture)
 - [Security](#security)
 
 ## Quick Start
@@ -553,7 +554,7 @@ js("return lodash.invert({a: 1, b: 2})")
 # Local TypeScript — compiled by Deno, hot-reloads; can import npm internally
 require("./math_utils.ts").fibonacci(10)
 
-# .wasm modules & WASI binaries load too — see Compiled Tools
+# .wasm modules & WASI binaries load too — see WASM Tools
 
 # Instances keep their methods — chain them
 dayjs = require("dayjs")
@@ -608,7 +609,7 @@ bash("curl -s https://api.github.com/zen")                   # network rules sti
 
 > **Runnable:** [javascript.py](examples/parselbox-basics/javascript.py) · [bash.py](examples/parselbox-basics/bash.py)
 
-### 6\. Compiled Tools
+### 6\. WASM Tools
 
 Pyodide can only load packages built for it — so `pandoc`, `ruby` or `shellcheck` are out of reach, and there is no `apt-get` in a single-process sandbox. Parselbox closes that gap with **WASI**: any program compiled to WebAssembly becomes a tool, with no host install.
 
@@ -654,11 +655,13 @@ bash("pandoc -f markdown -t plain notes.md | head -3 | tr a-z A-Z")
 
 Mount a `bin/` folder read-only to ship a fixed toolset the agent can use but not modify — nothing installed on the host — or have it fetch a `.wasm` into `bin/` at runtime, which works even when the sandbox's network is restricted to a single allowlisted host.
 
+You can even build one from source in-process — fetch a WASI clang + `wasm-ld` into `bin/`, compile C to `.wasm`, then `require()` the result. No host toolchain, nothing installed.
+
 > [!NOTE]
 > - Auto-detected as WASI `preview1` or `wasi_unstable` (preview0). Not supported: sockets, real sleeps, preview2 components.
 > - Compiled modules are cached per path (invalidated on rebuild), so a 50MB binary compiles once per session.
 
-> **Runnable:** [wasi.py](examples/parselbox-basics/wasi.py)
+> **Runnable:** [pandoc.py](examples/wasi/pandoc.py) — fetch a WASI binary · [compile_c.py](examples/wasi/compile_c.py) — compile C → wasm in-sandbox
 
 ### 7\. Progressive Disclosure
 
@@ -879,13 +882,27 @@ sandbox = Parselbox(
     timeout=60,                               # Execution timeout in seconds (default: 60, 0 disables)
     hooks=[AuditHook()],                      # Lifecycle hooks
     env={                                     # Custom env vars (available in Python os.environ)
-        "OPENAI_BASE_URL": "http://proxy/v1", #   SDK base_url overrides for reverse proxy
-        "OPENAI_API_KEY": "phantom",           #   Phantom tokens (real keys on proxy)
-        "HTTP_PROXY": "http://proxy:8080",     #   Deno-level proxy (filtered from os.environ)
-        "DENO_CERT": "/path/to/ca.pem",        #   Custom CA for MITM proxy
+        "OPENAI_BASE_URL": "http://proxy/v1", # SDK base_url overrides for reverse proxy
+        "OPENAI_API_KEY": "phantom",          # Phantom tokens (real keys on proxy)
+        "HTTP_PROXY": "http://proxy:8080",    # Deno-level proxy (filtered from os.environ)
+        "DENO_CERT": "/path/to/ca.pem",       # Custom CA for MITM proxy
     },
 )
 ```
+
+---
+
+## Architecture
+
+Parselbox runs agent code in one Deno process with Pyodide (CPython in WebAssembly) — no containers, no VMs. The permission-jailed **sandbox** works in an isolated temp workspace, with no network and no host access beyond the mounts you grant; the **host** holds the credentials. Every tool call is a round-trip between them:
+
+```
+  1. exec       HOST ──▶ SANDBOX    your code runs, permission-jailed
+  2. callback   HOST ◀── SANDBOX    code calls a tool as native Python
+  3. result     HOST ──▶ SANDBOX    host runs it with the real credentials
+```
+
+Tools *look* like native Python inside the sandbox, but they execute on the host — so **credentials never enter the sandbox**.
 
 ---
 
@@ -896,5 +913,5 @@ Parselbox's boundary is **Deno's permission system** — the sandbox starts with
 - **Filesystem** — isolated temp workspace (wiped on exit); read/write only to paths you pass (`files`, `mounts` as `ro`/`rw`, `output_dir`). Package-cache writes lock after startup unless `allow_runtime_packages=True`.
 - **Network** — off by default (revoked before your code runs). Opt in with `network=True`, an allowlist `network=["host:port", ...]`, or `allow_runtime_packages=True` (package domains only). For authenticated APIs, front it with a proxy — see [Proxy & Credential Injection](#proxy--credential-injection).
 - **Compiled tools (WASI)** — no sockets, so a binary has no network of its own; it sees only the mounts you grant (`ro` enforced by Deno), and a runaway is killed by the execution timeout.
-- **Resource limits** — WASM memory hard-capped at the V8 level (default 2048 MB, unbypassable), JS heap capped, per-execution timeout (default 60s → `KeyboardInterrupt`), auto-reconnect if the Deno process dies.
+- **Resource limits** — WASM memory capped per instance at the V8 level (default 2048 MB), JS heap capped, per-execution timeout (default 60s → `KeyboardInterrupt`), auto-reconnect if the Deno process dies.
 - **Context bridge** — only the objects you pass are reachable, and only their public methods; MCP servers expose their full tool set.
