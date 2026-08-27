@@ -5,6 +5,13 @@
   "description": "Secure Python sandbox — MCP servers, APIs, shells and host functions as native Python objects.",
   "version": "0.1.0",
   "websiteUrl": "https://github.com/thesanjeetc/Parselbox",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/thesanjeetc/Parselbox/main/assets/logo.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
+    }
+  ],
   "repository": {
     "url": "https://github.com/thesanjeetc/Parselbox",
     "source": "github",

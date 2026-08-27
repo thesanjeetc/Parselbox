@@ -1,6 +1,6 @@
 <!-- mcp-name: io.github.thesanjeetc/parselbox -->
-![Parselbox SDK](https://github.com/thesanjeetc/parselbox/blob/main/assets/parselbox-dark.png#gh-dark-mode-only)
-![Parselbox SDK](https://github.com/thesanjeetc/parselbox/blob/main/assets/parselbox-light.png#gh-light-mode-only)
+![Parselbox SDK](https://github.com/thesanjeetc/Parselbox/blob/main/assets/parselbox-dark.png#gh-dark-mode-only)
+![Parselbox SDK](https://github.com/thesanjeetc/Parselbox/blob/main/assets/parselbox-light.png#gh-light-mode-only)
 
 <div align="center">
 
@@ -10,13 +10,13 @@
 </div>
 
 <h4 align="center">
-  <a href="https://github.com/thesanjeetc/parselbox/blob/main/LICENSE.md">
+  <a href="https://github.com/thesanjeetc/Parselbox/blob/main/LICENSE.md">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge">
   </a>
   <a href="https://pypi.org/project/parselbox/">
     <img alt="PyPI - Version" src="https://img.shields.io/pypi/v/parselbox?style=for-the-badge">
   </a>
-  <a href="https://github.com/thesanjeetc/parselbox/actions/workflows/ci.yaml">
+  <a href="https://github.com/thesanjeetc/Parselbox/actions/workflows/ci.yaml">
     <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/thesanjeetc/parselbox/ci.yaml?branch=main&style=for-the-badge&label=CI">
   </a>
 </h4>

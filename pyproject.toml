@@ -32,9 +32,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/thesanjeetc/parselbox"
-Repository = "https://github.com/thesanjeetc/parselbox"
-Issues = "https://github.com/thesanjeetc/parselbox/issues"
+Homepage = "https://github.com/thesanjeetc/Parselbox"
+Repository = "https://github.com/thesanjeetc/Parselbox"
+Issues = "https://github.com/thesanjeetc/Parselbox/issues"
 
 [dependency-groups]
 dev = [
