@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "parselbox"
 version = "0.1.0"
-description = "An embeddable Python sandbox where AI agents call tools as code — MCP servers, APIs, and shells become native Python objects. Disk-backed workspace, packages, and networking built in; a single process powered by Deno and Pyodide."
+description = "An embeddable Python runtime where AI agents call tools as code — MCP servers, APIs and shells as native Python objects."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "MIT License" }

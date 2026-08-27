@@ -1,0 +1,25 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.thesanjeetc/parselbox",
+  "title": "Parselbox",
+  "description": "Secure Python sandbox — MCP servers, APIs, shells and host functions as native Python objects.",
+  "version": "0.1.0",
+  "websiteUrl": "https://github.com/thesanjeetc/Parselbox",
+  "repository": {
+    "url": "https://github.com/thesanjeetc/Parselbox",
+    "source": "github",
+    "id": "1120283365"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "parselbox",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

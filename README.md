@@ -1,3 +1,4 @@
+<!-- mcp-name: io.github.thesanjeetc/parselbox -->
 ![Parselbox SDK](https://github.com/thesanjeetc/parselbox/blob/main/assets/parselbox-dark.png#gh-dark-mode-only)
 ![Parselbox SDK](https://github.com/thesanjeetc/parselbox/blob/main/assets/parselbox-light.png#gh-light-mode-only)
 
@@ -20,7 +21,7 @@
   </a>
 </h4>
 
-Parselbox is an embeddable Python sandbox where AI agents call tools as code — MCP servers, APIs, and shells become native Python objects. Disk-backed workspace, packages, and networking built in; a single process powered by [Deno](https://deno.com/) and [Pyodide](https://pyodide.org/en/stable/).
+Parselbox is an embeddable Python runtime where AI agents call tools as code — MCP servers, APIs, and shells become native Python objects. Disk-backed workspace, packages, and networking built in; a single-process execution layer powered by [Deno](https://deno.com/) and [Pyodide](https://pyodide.org/en/stable/).
 
 https://github.com/user-attachments/assets/d4e43d16-3aa3-4e29-83c7-a1d3885b8045
 
