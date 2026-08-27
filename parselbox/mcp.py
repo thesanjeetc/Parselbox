@@ -14,6 +14,7 @@ except ImportError:
         warnings.simplefilter("ignore")
         from fastmcp.server.apps import AppConfig
 
+from . import __version__
 from .hooks import ElicitHook
 from .logging import logger
 from .view import csp as ui_csp
@@ -113,7 +114,7 @@ class ParselboxMCP:
 
         self.max_tokens_estimate = max_tokens_estimate
 
-        self.mcp = FastMCP(name="Parselbox")
+        self.mcp = FastMCP(name="Parselbox", version=__version__)
         self.resources = set()
 
         self.ui = None

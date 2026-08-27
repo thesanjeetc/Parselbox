@@ -1,3 +1,10 @@
+from importlib.metadata import PackageNotFoundError, version as _version
+
+try:
+    __version__ = _version("parselbox")
+except PackageNotFoundError:  # running from a source checkout, not installed
+    __version__ = "0.0.0+unknown"
+
 from .logging import configure_logger
 
 # Logging enabled by default. Disable with:
@@ -11,6 +18,7 @@ from .mcp import ParselboxMCP
 from .prompt import PARSELBOX_PROMPT
 
 __all__ = [
+    "__version__",
     "Callback",
     "ExecutionResult",
     "Hook",
