@@ -28,6 +28,22 @@ https://github.com/user-attachments/assets/d4e43d16-3aa3-4e29-83c7-a1d3885b8045
 > [!TIP]
 > Drop the [Parselbox MCP](#parselbox-mcp) alongside existing MCP server configurations. Agents instantly get a Python runtime, MCP tools as code, support for skills and a disk-backed workspace.
 
+## Why Parselbox?
+
+Parselbox packages programmatic tool calling as a local, open-source execution layer. Drop it into an existing MCP configuration with `uvx`, or embed the Python API into any agent stack.
+
+Beyond code execution, Parselbox provides a stateful, disk-backed workspace with packages, controlled networking, background tasks and progressive discovery.
+
+Deno + Pyodide provide a single-process runtime with explicit filesystem and network permissions — no containers or microVMs required. It also enables JavaScript/npm interoperability, WASM/WASI integration and generative UI through MCP Apps.
+
+### Why an execution layer?
+
+Most agent stacks expose each capability as a separate tool. As integrations grow, tool schemas consume more context. The model must also carry intermediate results, transform data and route values between calls.
+
+An execution layer moves orchestration out of the context window and into code. Capabilities are discovered on demand, then composed with full control flow. A single execution can coordinate multiple tools while variables, state and files remain inside the runtime.
+
+The result is less context bloat, fewer model-to-tool round trips and complex workflows expressed as code rather than chains of individual calls.
+
 ## Features
 
 #### 🔒 Secure Isolation
