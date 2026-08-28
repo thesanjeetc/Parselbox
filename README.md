@@ -17,7 +17,7 @@
     <img alt="PyPI - Version" src="https://img.shields.io/pypi/v/parselbox?style=for-the-badge">
   </a>
   <a href="https://github.com/thesanjeetc/Parselbox/actions/workflows/ci.yaml">
-    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/thesanjeetc/parselbox/ci.yaml?branch=main&style=for-the-badge&label=CI">
+    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/thesanjeetc/Parselbox/ci.yaml?branch=main&style=for-the-badge&label=CI">
   </a>
 </h4>
 
