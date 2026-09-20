@@ -71,8 +71,6 @@ class ShellBridge(Bridge):
         )
 
     async def _spawn(self):
-        # Resolve PATH explicitly: Windows searches system directories first,
-        # which can select the WSL launcher instead of the requested Git Bash.
         executable = shutil.which(self._parts[0]) or self._parts[0]
         return await asyncio.create_subprocess_exec(
             executable,

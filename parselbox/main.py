@@ -71,8 +71,6 @@ class Parselbox:
         )
         self.files = [str(Path(f).resolve()) for f in (files or [])]
         self.cache_dir = tempfile.TemporaryDirectory()
-        # macOS temp paths can use /var, an alias of /private/var. Give all
-        # runtimes canonical mount roots so Bash's containment checks agree.
         cache_path = Path(self.cache_dir.name).resolve()
         self.output_dir = (
             str(Path(output_dir).resolve())
@@ -147,8 +145,6 @@ class Parselbox:
         return deno_path
 
     def _build_deno_env(self) -> dict[str, str]:
-        # Windows needs SystemRoot for DNS. Keep other host variables (including
-        # credentials) out of the sandbox unless explicitly supplied by the caller.
         env = {}
         if platform.system() == "Windows" and "SystemRoot" in os.environ:
             env["SystemRoot"] = os.environ["SystemRoot"]

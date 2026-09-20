@@ -84,8 +84,6 @@ async def test_shell_cancellation_terminates_process(monkeypatch):
 async def test_shell_uses_first_executable_on_path(tmp_path, monkeypatch):
     preferred = tmp_path / "preferred shell"
     preferred.mkdir()
-    # Windows normally searches the running Python's directory before PATH.
-    # Use cmd.exe under that same filename to make the selected process observable.
     executable_name = os.path.basename(sys.executable)
     shutil.copyfile(os.environ["COMSPEC"], preferred / executable_name)
     monkeypatch.setenv("PATH", str(preferred) + os.pathsep + os.environ["PATH"])

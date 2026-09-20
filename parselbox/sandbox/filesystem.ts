@@ -38,9 +38,6 @@ function createReadWriteFs(root: string): ReadWriteFs {
   const fs = new ReadWriteFs({ root });
   if (Deno.build.os !== 'windows') return fs;
 
-  // just-bash 2.x validates native paths using a '/' prefix, which rejects
-  // existing Windows files. Keep its default no-symlink policy while using
-  // native path components to validate this mount's boundary.
   const base = path.resolve(root);
   const canonicalBase = Deno.realPathSync(base);
   (fs as any).resolveAndValidate = (realPath: string, virtualPath: string) => {
@@ -243,8 +240,6 @@ export function setupBash(
 
   return async (cmd: string): Promise<string> => {
     try {
-      // Native watch events can be delayed (especially on macOS). Cache within
-      // one Bash call, but always observe host/JS writes before the next call.
       cachedFs.clear();
       refreshWasmCommands();
       const result = await bashInstance.exec(cmd);

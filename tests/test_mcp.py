@@ -37,8 +37,6 @@ class TestMCPInstructions:
     async def test_initialize_receives_guide_for_enabled_features(self, serve):
         sandbox = Parselbox(serve=serve)
         try:
-            # Check construction, disabling UI, then re-enabling it. Each new
-            # client must receive the current guide during initialization.
             for ui in (None, False, True):
                 if ui is not None:
                     sandbox.parselbox_mcp.set_ui(ui)

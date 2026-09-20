@@ -709,10 +709,6 @@ class ParselboxPackages:
                     if pkg.startswith("file:"):
                         from tempfile import mkdtemp
 
-                        # Pyodide treats a file URL's pathname as a native path,
-                        # leaving an invalid /C:/ prefix on Windows. Mount the
-                        # original directory so micropip reads the wheel in place.
-                        # NODEFS still enforces Deno's host file permissions.
                         directory = mkdtemp(prefix="parselbox-wheel-")
                         mounted = False
                         try:
@@ -722,8 +718,6 @@ class ParselboxPackages:
                         finally:
                             if mounted:
                                 pyodide_js.FS.unmount(directory)
-                            # Never recurse: a failed unmount must not delete
-                            # files in the original host directory.
                             os.rmdir(directory)
                     else:
                         await micropip.install(pkg)

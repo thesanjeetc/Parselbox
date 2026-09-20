@@ -247,8 +247,6 @@ export async function setupPyodide(
   };
 
   const mountLocalWheel = (url: string, mountPoint: string): string => {
-    // Check the actual target through NODEFS, not a permitted lexical path
-    // that could point outside the allowed directory via a symlink/junction.
     const hostPath = Deno.realPathSync(fileURLToPath(url));
     pyodide.FS.mount(
       pyodide.FS.filesystems.NODEFS,
