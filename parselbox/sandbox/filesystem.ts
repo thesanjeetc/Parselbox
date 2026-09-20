@@ -155,13 +155,23 @@ function createCachedFs(inner: IFileSystem, watcher: FileWatcher) {
     },
   };
 
-  return new Proxy(inner, {
+  const fs = new Proxy(inner, {
     get(target, prop) {
       if (prop in overrides) return overrides[prop as string];
       const val = (target as any)[prop];
       return typeof val === 'function' ? val.bind(target) : val;
     },
   }) as IFileSystem;
+
+  return {
+    fs,
+    clear() {
+      contentCache.clear();
+      dirCache.clear();
+      statCache.clear();
+      cacheBytes = 0;
+    },
+  };
 }
 
 export function setupBash(
@@ -181,7 +191,7 @@ export function setupBash(
 
   const cachedFs = createCachedFs(mfs, watcher);
   const bashInstance = new Bash({
-    fs: cachedFs,
+    fs: cachedFs.fs,
     cwd: '/workspace',
     env: { ...env, HOME: '/workspace', USER: 'user' },
     network: { dangerouslyAllowFullInternetAccess: true },
@@ -233,6 +243,9 @@ export function setupBash(
 
   return async (cmd: string): Promise<string> => {
     try {
+      // Native watch events can be delayed (especially on macOS). Cache within
+      // one Bash call, but always observe host/JS writes before the next call.
+      cachedFs.clear();
       refreshWasmCommands();
       const result = await bashInstance.exec(cmd);
       return JSON.stringify({

@@ -1,9 +1,11 @@
 import asyncio
+import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
@@ -13,6 +15,7 @@ from parselbox import Mount, Parselbox
 from parselbox.bridge import ShellBridge
 from parselbox.models import SandboxError
 from parselbox.prompt import PARSELBOX_PROMPT, PARSELBOX_UI_PROMPT
+from parselbox.main import DENO_SCRIPT_PATH
 
 
 async def test_cli_stdio_with_host_mount_and_unicode(tmp_path):
@@ -150,6 +153,30 @@ async def test_temporary_directory_alias_shares_files(tmp_path, monkeypatch):
         )
         assert result.is_success, result.error
         assert result.output == "from_bash"
+
+
+async def test_bash_cache_updates_without_filesystem_events(tmp_path, monkeypatch):
+    entry = tmp_path / "without-watcher.ts"
+    entry.write_text(
+        "Deno.watchFs = () => { throw new Error('watch events unavailable'); };\n"
+        f"await import({json.dumps(Path(DENO_SCRIPT_PATH).as_uri())});\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("parselbox.main.DENO_SCRIPT_PATH", str(entry))
+    async with Parselbox() as sandbox:
+        sandbox.write_file("shared.txt", "initial")
+        result = await sandbox.execute_code("bash('cat shared.txt')")
+        assert result.output == "initial"
+
+        sandbox.write_file("shared.txt", "from_host")
+        result = await sandbox.execute_code("bash('cat shared.txt')")
+        assert result.output == "from_host"
+
+        result = await sandbox.execute_code(
+            """js("Deno.writeTextFileSync(resolvePath('shared.txt'), 'from_js')");
+bash('cat shared.txt')"""
+        )
+        assert result.output == "from_js"
 
 
 async def test_bash_rejects_symlink_outside_mount(tmp_path):
