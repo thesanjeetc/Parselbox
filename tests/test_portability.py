@@ -1,4 +1,6 @@
 import asyncio
+import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -73,6 +75,20 @@ async def test_shell_cancellation_terminates_process(monkeypatch):
         if process.returncode is None:
             process.kill()
         await process.wait()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows executable search order")
+async def test_shell_uses_first_executable_on_path(tmp_path, monkeypatch):
+    preferred = tmp_path / "preferred shell"
+    preferred.mkdir()
+    # Windows normally searches the running Python's directory before PATH.
+    # Use cmd.exe under that same filename to make the selected process observable.
+    executable_name = os.path.basename(sys.executable)
+    shutil.copyfile(os.environ["COMSPEC"], preferred / executable_name)
+    monkeypatch.setenv("PATH", str(preferred) + os.pathsep + os.environ["PATH"])
+    bridge = ShellBridge(executable_name)
+    result = await bridge.exec("exit 23")
+    assert result["exit_code"] == 23
 
 
 def test_host_text_preserves_utf8_and_newlines(tmp_path):

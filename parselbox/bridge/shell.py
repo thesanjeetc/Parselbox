@@ -5,6 +5,7 @@ import contextlib
 import os
 import signal
 import shlex
+import shutil
 from collections import deque
 
 from parselbox.bridge import Bridge, _current_task
@@ -70,8 +71,12 @@ class ShellBridge(Bridge):
         )
 
     async def _spawn(self):
+        # Resolve PATH explicitly: Windows searches system directories first,
+        # which can select the WSL launcher instead of the requested Git Bash.
+        executable = shutil.which(self._parts[0]) or self._parts[0]
         return await asyncio.create_subprocess_exec(
-            *self._parts,
+            executable,
+            *self._parts[1:],
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
