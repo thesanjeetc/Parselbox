@@ -127,11 +127,12 @@ class ParselboxMCP:
         carries no ui metadata, nothing is preloaded, and the agent is never told
         display() is available.
         """
+        self.sandbox.ui = enabled
+        self.mcp.instructions = self.sandbox.get_prompt()
         if self.ui == enabled:
             return
         first = self.ui is None
         self.ui = enabled
-        self.sandbox.ui = enabled
 
         app = None
         if enabled:

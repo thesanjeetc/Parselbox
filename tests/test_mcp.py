@@ -6,6 +6,11 @@ from fastmcp.client.elicitation import ElicitResult
 
 from parselbox import Parselbox
 from parselbox.bridge import Bridge
+from parselbox.prompt import (
+    PARSELBOX_PROMPT,
+    PARSELBOX_SERVE_PROMPT,
+    PARSELBOX_UI_PROMPT,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -25,6 +30,27 @@ def accept_and_record():
         return ElicitResult(action="accept")
 
     return handler, events
+
+
+class TestMCPInstructions:
+    @pytest.mark.parametrize("serve", [None, 8080])
+    async def test_initialize_receives_guide_for_enabled_features(self, serve):
+        sandbox = Parselbox(serve=serve)
+        try:
+            # Check construction, disabling UI, then re-enabling it. Each new
+            # client must receive the current guide during initialization.
+            for ui in (None, False, True):
+                if ui is not None:
+                    sandbox.parselbox_mcp.set_ui(ui)
+                expected = PARSELBOX_PROMPT
+                if ui is not False:
+                    expected += PARSELBOX_UI_PROMPT
+                if serve:
+                    expected += PARSELBOX_SERVE_PROMPT
+                async with Client(sandbox.parselbox_mcp.mcp) as client:
+                    assert client.initialize_result.instructions == expected
+        finally:
+            sandbox.cache_dir.cleanup()
 
 
 class TestMCPExecution:
