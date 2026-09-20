@@ -39,12 +39,20 @@ jobs:
           SKIP: no-commit-to-branch
 
   test:
-    name: test py${{ matrix.python-version }}
-    runs-on: ubuntu-latest
+    name: test ${{ matrix.os }} py${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: windows-latest
+            python-version: "3.13"
+          - os: macos-latest
+            python-version: "3.13"
+          - os: macos-15-intel
+            python-version: "3.13"
     env:
       UV_PYTHON: ${{ matrix.python-version }}
     steps:
@@ -60,14 +68,18 @@ jobs:
 
       - run: uv sync
 
-      - run: make test
+      - name: Use Git Bash for host shell bridge tests on Windows
+        if: runner.os == 'Windows'
+        run: Add-Content $env:GITHUB_PATH 'C:\Program Files\Git\bin'
+
+      - run: uv run coverage run -m pytest tests --ignore=tests/test_bench.py
         env:
-          COVERAGE_FILE: coverage/.coverage.py${{ matrix.python-version }}
+          COVERAGE_FILE: coverage/.coverage.${{ matrix.os }}.py${{ matrix.python-version }}
 
       - name: store coverage files
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.python-version }}
+          name: coverage-${{ matrix.os }}-${{ matrix.python-version }}
           path: coverage
           include-hidden-files: true
 
