@@ -113,32 +113,6 @@ irm https://deno.land/install.ps1 | iex
 pip install parselbox
 ```
 
-### Developing on Windows
-
-Use current [uv](https://docs.astral.sh/uv/) and Deno 2.x in PowerShell:
-
-```powershell
-git clone https://github.com/thesanjeetc/Parselbox.git
-cd Parselbox
-uv sync --locked
-uv run parselbox --help
-uv run coverage run -m pytest tests --ignore=tests/test_bench.py
-```
-
-Run the local checkout with `uv run parselbox`, or `uvx --from . parselbox`.
-Plain `uvx parselbox` runs the published PyPI release.
-The commands above also work in Linux/WSL; keep separate virtual environments
-for native Windows and WSL.
-
-Sandbox paths always use forward slashes (`/workspace`, `/mnt/data`), while
-host paths may be Windows paths, for example `--mount "C:\data:/data:rw"`.
-Parselbox preserves Windows' `SystemRoot` for Deno networking automatically;
-other host environment variables are passed only through explicit `env`/`--env`.
-
-The built-in sandbox `bash()` needs no host shell. `ShellBridge()` and its
-tests need a working `bash` on `PATH` (Git Bash or WSL), or an explicitly
-configured host shell such as `ShellBridge("powershell -NoProfile -Command -")`.
-
 ### Parselbox API
 
 Wire any tool into the sandbox — MCP servers, REST/GraphQL, shells, host objects — and the agent calls them as native Python, composing them with real control flow over a disk-backed workspace and both the Python and npm package ecosystems.
@@ -212,10 +186,6 @@ asyncio.run(main())
 ### Parselbox MCP
 
 The Parselbox CLI runs a standalone MCP server — every sandbox option is available as a flag.
-
-The server sends the sandbox guide in the MCP initialization response's
-`instructions` field, including the UI and serving sections when those features
-are enabled. The same guide remains available through `sbx.help()`.
 
 #### STDIO
 
