@@ -1,6 +1,7 @@
 import asyncio
 import subprocess
 import sys
+import tempfile
 from unittest.mock import AsyncMock
 
 import pytest
@@ -100,24 +101,48 @@ async def test_windows_paths_cannot_escape_mount(tmp_path):
         assert "secret" not in (result.output or "")
 
 
+def _link_directory(link, target):
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except OSError as exc:
+        if sys.platform == "win32" and getattr(exc, "winerror", None) == 1314:
+            # Directory junctions do not require Developer Mode or symlink privilege.
+            subprocess.run(
+                ["cmd", "/c", "mklink", "/J", str(link), str(target)],
+                check=True,
+                capture_output=True,
+            )
+        else:
+            raise
+
+
+async def test_temporary_directory_alias_shares_files(tmp_path, monkeypatch):
+    actual = tmp_path / "actual"
+    actual.mkdir()
+    alias = tmp_path / "alias"
+    _link_directory(alias, actual)
+    # macOS's default /var temporary directory resolves under /private/var.
+    monkeypatch.setattr(tempfile, "tempdir", str(alias))
+    async with Parselbox() as sandbox:
+        result = await sandbox.execute_code(
+            "open('shared.txt', 'w').write('from_python'); bash('cat shared.txt')"
+        )
+        assert result.is_success, result.error
+        assert result.output == "from_python"
+        result = await sandbox.execute_code(
+            "bash('echo from_bash > shared.txt'); open('shared.txt').read().strip()"
+        )
+        assert result.is_success, result.error
+        assert result.output == "from_bash"
+
+
 async def test_bash_rejects_symlink_outside_mount(tmp_path):
     mount = tmp_path / "data"
     private = tmp_path / "private"
     mount.mkdir()
     private.mkdir()
     (private / "secret.txt").write_text("secret", encoding="utf-8")
-    try:
-        (mount / "link").symlink_to(private, target_is_directory=True)
-    except OSError as exc:
-        if sys.platform == "win32" and getattr(exc, "winerror", None) == 1314:
-            # Directory junctions do not require Developer Mode or symlink privilege.
-            subprocess.run(
-                ["cmd", "/c", "mklink", "/J", str(mount / "link"), str(private)],
-                check=True,
-                capture_output=True,
-            )
-        else:
-            raise
+    _link_directory(mount / "link", private)
     async with Parselbox(
         mounts=[Mount(str(mount), "data")], output_dir=str(tmp_path), timeout=5
     ) as sandbox:

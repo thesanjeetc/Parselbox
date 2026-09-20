@@ -71,19 +71,22 @@ class Parselbox:
         )
         self.files = [str(Path(f).resolve()) for f in (files or [])]
         self.cache_dir = tempfile.TemporaryDirectory()
+        # macOS temp paths can use /var, an alias of /private/var. Give all
+        # runtimes canonical mount roots so Bash's containment checks agree.
+        cache_path = Path(self.cache_dir.name).resolve()
         self.output_dir = (
             str(Path(output_dir).resolve())
             if output_dir
-            else str(Path(self.cache_dir.name) / "workspace")
+            else str(cache_path / "workspace")
         )
         self.tasks_dir = str(Path(self.output_dir) / ".parselbox" / "tasks")
-        self.tmp_dir = str(Path(self.cache_dir.name) / "tmp")
+        self.tmp_dir = str(cache_path / "tmp")
         self.package_dir = (
             str(Path(package_dir).resolve())
             if package_dir
-            else str(Path(self.cache_dir.name) / "packages")
+            else str(cache_path / "packages")
         )
-        self.files_dir = str(Path(self.cache_dir.name) / "files")
+        self.files_dir = str(cache_path / "files")
         for d in [
             self.output_dir,
             self.tasks_dir,
