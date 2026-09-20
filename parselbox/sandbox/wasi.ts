@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+
 const ERRNO = {
   OK: 0,
   ACCES: 2,
@@ -33,7 +35,7 @@ export function createResolvePath(mounts: Array<[string, string]>) {
     vfsPath = '/' + parts.join('/');
     for (const [vfs, host] of mounts) {
       if (vfsPath === vfs || vfsPath.startsWith(vfs + '/')) {
-        return host + vfsPath.slice(vfs.length);
+        return join(host, vfsPath.slice(vfs.length));
       }
     }
     throw new Error(`"${vfsPath}" is not backed by a mounted directory`);

@@ -923,9 +923,11 @@ class TestResolvePath:
                 ''')
             """,
             )
-            assert r.output["abs"].endswith("/files/test.csv")
-            assert r.output["rel"] == str(tmp_path / "data.csv")
-            assert r.output["dotdot"].endswith("/files/data.csv")
+            from pathlib import Path
+
+            assert Path(r.output["abs"]).parts[-2:] == ("files", "test.csv")
+            assert Path(r.output["rel"]) == tmp_path / "data.csv"
+            assert Path(r.output["dotdot"]).parts[-2:] == ("files", "data.csv")
 
 
 class TestDenoStreams:

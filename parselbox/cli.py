@@ -1,5 +1,6 @@
 import asyncio
 import csv
+import re
 import sys
 import traceback
 from io import StringIO
@@ -35,6 +36,16 @@ class MountType(click.ParamType):
 
         if not parts or not parts[0]:
             self.fail(f"Missing host path in mount spec: {value}", param, ctx)
+
+        # Shell quoting groups the argument but does not protect the drive colon.
+        if (
+            len(parts) > 1
+            and re.fullmatch(r"[A-Za-z]", parts[0])
+            and parts[1].startswith(("\\", "/"))
+        ):
+            parts[:2] = [parts[0] + ":" + parts[1]]
+        if len(parts) > 3:
+            self.fail(f"Expected HOST:TARGET:MODE, got '{value}'", param, ctx)
 
         host = parts[0]
         target = parts[1] if len(parts) > 1 and parts[1] else None

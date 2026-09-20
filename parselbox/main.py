@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import platform
+import posixpath
 import re
 import shutil
 import subprocess
@@ -94,6 +95,7 @@ class Parselbox:
         ]:
             os.makedirs(d, exist_ok=True)
 
+        self.env = env or {}
         self._deno_config = self._setup_packages(packages or [])
 
         self.globals = globals
@@ -112,7 +114,6 @@ class Parselbox:
 
         self.packages = packages or []
         self.hooks = hooks or []
-        self.env = env or {}
         self.ui = False
 
         self._rpc: RpcClient | None = None
@@ -142,6 +143,20 @@ class Parselbox:
             raise RuntimeError(f"Deno not found or failed to run: {e}")
         return deno_path
 
+    def _build_deno_env(self) -> dict[str, str]:
+        # Windows needs SystemRoot for DNS. Keep other host variables (including
+        # credentials) out of the sandbox unless explicitly supplied by the caller.
+        env = {}
+        if platform.system() == "Windows" and "SystemRoot" in os.environ:
+            env["SystemRoot"] = os.environ["SystemRoot"]
+        return {
+            **env,
+            **self.env,
+            "DENO_DIR": DENO_CACHE_DIR,
+            "DENO_NO_PACKAGE_JSON": "1",
+            "MALLOC_ARENA_MAX": "1",
+        }
+
     def _setup_packages(self, packages: list[str]) -> str:
         config_dir = Path(self.cache_dir.name) / "deno"
         config_dir.mkdir(exist_ok=True)
@@ -151,14 +166,18 @@ class Parselbox:
 
         npm_packages = [p for p in packages if p.startswith("npm:")]
         if npm_packages:
-            env = {"DENO_DIR": DENO_CACHE_DIR, "DENO_NO_PACKAGE_JSON": "1"}
             cmd = [self.deno_path, "cache", f"--config={config}", *npm_packages]
-            subprocess.run(cmd, env=env, capture_output=True)
+            result = subprocess.run(
+                cmd, env=self._build_deno_env(), capture_output=True
+            )
+            if result.returncode:
+                error = result.stderr.decode(errors="replace").strip()
+                raise RuntimeError(f"Failed to cache npm packages: {error}")
 
         return config
 
     def _build_deno_args(self) -> list[str]:
-        args = ["run"]
+        args = ["run", "--no-prompt"]
         args.append(f"--config={self._deno_config}")
         args.append("--node-modules-dir=false")
         if not self.allow_runtime_packages:
@@ -263,13 +282,8 @@ class Parselbox:
     async def _start_sandbox(self):
         deno_args = self._build_deno_args()
         config = self._build_config()
-        env = {
-            **self.env,
-            "DENO_DIR": DENO_CACHE_DIR,
-            "PARSELBOX_CONFIG": json.dumps(config),
-            "MALLOC_ARENA_MAX": "1",
-            "DENO_NO_PACKAGE_JSON": "1",
-        }
+        env = self._build_deno_env()
+        env["PARSELBOX_CONFIG"] = json.dumps(config)
         self._proc = await asyncio.create_subprocess_exec(
             self.deno_path,
             *deno_args,
@@ -318,7 +332,7 @@ class Parselbox:
         await self.upload_files(self.files)
 
     async def close(self):
-        if not self.is_connected():
+        if self._rpc is None and self._proc is None:
             return
         logger.debug("Closing sandbox...")
         await self._cleanup()
@@ -442,7 +456,8 @@ class Parselbox:
         p = sandbox_path
         if not p.startswith("/"):
             p = f"/workspace/{p}"
-        p = os.path.normpath(p)
+        # Sandbox paths use POSIX separators even when the host is Windows.
+        p = posixpath.normpath(p)
         mapping = [
             ("/workspace", self.output_dir),
             ("/files", self.files_dir),
@@ -453,7 +468,11 @@ class Parselbox:
         for prefix, host_dir in sorted(mapping, key=lambda x: -len(x[0])):
             if p == prefix or p.startswith(prefix + "/"):
                 rel = p[len(prefix) :].lstrip("/")
-                return Path(host_dir) / rel if rel else Path(host_dir)
+                root = Path(host_dir).resolve()
+                host_path = (root / rel).resolve()
+                if host_path.is_relative_to(root):
+                    return host_path
+                break
         raise SandboxError(f"Path not backed by disk: {sandbox_path}")
 
     def read_file(self, path: str) -> bytes | str:
@@ -474,7 +493,7 @@ class Parselbox:
         host_path = self.resolve_path(path)
         host_path.parent.mkdir(parents=True, exist_ok=True)
         if isinstance(content, str):
-            host_path.write_text(content)
+            host_path.write_text(content, encoding="utf-8", newline="")
         else:
             host_path.write_bytes(content)
 

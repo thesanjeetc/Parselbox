@@ -5,6 +5,7 @@ import {
   MountableFs,
   ReadWriteFs,
 } from 'just-bash';
+import path from 'node:path';
 import { createResolvePath, makeWasiBashCommand } from './wasi.ts';
 
 const WASM_BIN_DIR = 'bin';
@@ -32,6 +33,39 @@ export class FileWatcher {
 }
 
 const MAX_CACHE_BYTES = 128 * 1024 * 1024;
+
+function createReadWriteFs(root: string): ReadWriteFs {
+  const fs = new ReadWriteFs({ root });
+  if (Deno.build.os !== 'windows') return fs;
+
+  // just-bash 2.x validates native paths using a '/' prefix, which rejects
+  // existing Windows files. Keep its default no-symlink policy while using
+  // native path components to validate this mount's boundary.
+  const base = path.resolve(root);
+  const canonicalBase = Deno.realPathSync(base);
+  (fs as any).resolveAndValidate = (realPath: string, virtualPath: string) => {
+    const deny = () => {
+      throw new Error(`EACCES: permission denied, '${virtualPath}'`);
+    };
+    const relative = path.relative(base, realPath);
+    if (
+      path.isAbsolute(relative) || relative === '..' ||
+      relative.startsWith('..' + path.sep)
+    ) deny();
+
+    let resolved = canonicalBase;
+    for (const part of relative.split(path.sep).filter(Boolean)) {
+      resolved = path.join(resolved, part);
+      try {
+        if (Deno.lstatSync(resolved).isSymlink) deny();
+      } catch (error) {
+        if (!(error instanceof Deno.errors.NotFound)) throw error;
+      }
+    }
+    return resolved;
+  };
+  return fs;
+}
 
 function patchMountableFs(mfs: MountableFs) {
   (mfs as any).readdirWithFileTypes = function (path: string) {
@@ -140,7 +174,7 @@ export function setupBash(
     base: new InMemoryFs(),
     mounts: mounts.map(([vfs, host]) => ({
       mountPoint: vfs,
-      filesystem: new ReadWriteFs({ root: host }),
+      filesystem: createReadWriteFs(host),
     })),
   });
   patchMountableFs(mfs);

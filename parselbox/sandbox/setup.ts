@@ -1,5 +1,6 @@
 import { loadPyodide, version as PYODIDE_VERSION } from 'pyodide';
-import { join } from 'node:path';
+import { basename, dirname, join, posix } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { logger, rpc } from './rpc.ts';
 import { analyzeWasm, makeWasiRunner } from './wasi.ts';
 
@@ -192,7 +193,8 @@ export async function setupPyodide(
       packageName.startsWith('./') ||
       packageName.startsWith('../');
     const specifier = isLocal
-      ? 'file://' + resolvePath(packageName)
+      ? pathToFileURL(resolvePath(cleanName)).href +
+        packageName.slice(cleanName.length)
       : `npm:${packageName}`;
     const mod = await import(specifier);
     const resolved = mod.default ?? mod;
@@ -214,7 +216,7 @@ export async function setupPyodide(
 
     for (const [vfs, host] of mounts) {
       if (vfsPath === vfs || vfsPath.startsWith(vfs + '/')) {
-        return host + vfsPath.slice(vfs.length);
+        return join(host, vfsPath.slice(vfs.length));
       }
     }
     throw new Error(
@@ -244,12 +246,25 @@ export async function setupPyodide(
     }
   };
 
+  const mountLocalWheel = (url: string, mountPoint: string): string => {
+    // Check the actual target through NODEFS, not a permitted lexical path
+    // that could point outside the allowed directory via a symlink/junction.
+    const hostPath = Deno.realPathSync(fileURLToPath(url));
+    pyodide.FS.mount(
+      pyodide.FS.filesystems.NODEFS,
+      { root: dirname(hostPath) },
+      mountPoint,
+    );
+    return posix.join(mountPoint, basename(hostPath));
+  };
+
   for (
     const [name, fn] of Object.entries({
       _pbx_rpc: jsHostRPCBridge,
       _pbx_import: npmImport,
       _pbx_alias: registerAlias,
       _pbx_eval: jsEval,
+      _pbx_mount_local_wheel: mountLocalWheel,
     })
   ) {
     pyodide.globals.set(name, fn);

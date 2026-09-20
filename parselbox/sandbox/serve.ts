@@ -1,5 +1,5 @@
 import { contentType } from '@std/media-types';
-import path from 'node:path';
+import path from 'node:path/posix';
 import type { PyodideInterface } from 'pyodide';
 import { logger } from './rpc.ts';
 

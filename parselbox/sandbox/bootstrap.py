@@ -706,7 +706,27 @@ class ParselboxPackages:
         if to_install:
             for pkg in to_install:
                 try:
-                    await micropip.install(pkg)
+                    if pkg.startswith("file:"):
+                        from tempfile import mkdtemp
+
+                        # Pyodide treats a file URL's pathname as a native path,
+                        # leaving an invalid /C:/ prefix on Windows. Mount the
+                        # original directory so micropip reads the wheel in place.
+                        # NODEFS still enforces Deno's host file permissions.
+                        directory = mkdtemp(prefix="parselbox-wheel-")
+                        mounted = False
+                        try:
+                            wheel = _pbx_mount_local_wheel(pkg, directory)
+                            mounted = True
+                            await micropip.install(f"emfs:{wheel}")
+                        finally:
+                            if mounted:
+                                pyodide_js.FS.unmount(directory)
+                            # Never recurse: a failed unmount must not delete
+                            # files in the original host directory.
+                            os.rmdir(directory)
+                    else:
+                        await micropip.install(pkg)
                     results["installed"].append(pkg)
                 except Exception as e:
                     sys.stderr.write(f"Failed to install {pkg}: {e}\n")

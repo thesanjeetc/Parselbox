@@ -32,6 +32,22 @@ class TestMountTypeParsing:
         assert mount.target == "/target"
         assert mount.mode == "rw"
 
+    @pytest.mark.parametrize("host", [r"C:\Users\data", "C:/Users/data"])
+    def test_windows_drive_without_inner_quotes(self, host):
+        mount = self.mount_type.convert(f"{host}:/target:rw", None, None)
+        assert "Users" in mount.host
+        assert mount.target == "/target"
+        assert mount.mode == "rw"
+
+    def test_windows_drive_host_only(self):
+        mount = self.mount_type.convert("C:/Users/data", None, None)
+        assert mount.target == "data"
+        assert mount.mode == "ro"
+
+    def test_extra_fields_rejected(self):
+        with pytest.raises(BadParameter, match="HOST:TARGET:MODE"):
+            self.mount_type.convert("/host:/target:rw:extra", None, None)
+
     def test_quoted_host_with_spaces(self):
         mount = self.mount_type.convert('"path with spaces":/target', None, None)
         assert "path with spaces" in mount.host

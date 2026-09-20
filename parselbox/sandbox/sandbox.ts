@@ -82,7 +82,7 @@ export class PyodideManager {
   resolveToHost(vfsPath: string): string | null {
     for (const [vfs, host] of this.mounts) {
       if (vfsPath === vfs || vfsPath.startsWith(vfs + '/')) {
-        return host + vfsPath.slice(vfs.length);
+        return path.join(host, vfsPath.slice(vfs.length));
       }
     }
     return null;
@@ -129,7 +129,7 @@ export class PyodideManager {
     if (this.config.files_dir) mounts.push(['/files', this.config.files_dir]);
     if (this.config.mounts) {
       for (const [hostDir, name] of Object.entries(this.config.mounts)) {
-        mounts.push([`/mnt/${name}`, hostDir as string]);
+        mounts.push([path.posix.join('/mnt', name), hostDir as string]);
       }
     }
     return mounts.sort((a, b) => b[0].length - a[0].length);
@@ -218,8 +218,15 @@ export class PyodideManager {
             if (event.kind === 'access') continue;
             for (const p of event.paths) {
               for (const [host, vfs] of reverseMounts) {
-                if (p === host || p.startsWith(host + '/')) {
-                  this.watcher.notify(vfs + p.slice(host.length));
+                const relative = path.relative(host, p);
+                if (
+                  relative === '' ||
+                  (!path.isAbsolute(relative) && relative !== '..' &&
+                    !relative.startsWith('..' + path.sep))
+                ) {
+                  this.watcher.notify(
+                    path.posix.join(vfs, relative.split(path.sep).join('/')),
+                  );
                   break;
                 }
               }
@@ -326,7 +333,7 @@ export class PyodideManager {
       if (!sys.path.includes(mountRoot)) sys.path.append(mountRoot);
 
       for (const [hostPath, name] of Object.entries(args.mounts)) {
-        const mountPoint = path.join(mountRoot, name);
+        const mountPoint = path.posix.join(mountRoot, name);
         try {
           this.pyodide.FS.mkdirTree(mountPoint);
         } catch {}

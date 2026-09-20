@@ -38,7 +38,10 @@ class ShellBridge(Bridge):
 
     async def _pbx_connect(self):
         """Verify the shell command works before accepting calls."""
-        proc = await self._spawn()
+        try:
+            proc = await self._spawn()
+        except OSError as exc:
+            raise ConnectionError(f"Shell not reachable: {self._command}") from exc
         try:
             proc.stdin.write(b"echo ok\n")
             proc.stdin.close()
@@ -72,13 +75,16 @@ class ShellBridge(Bridge):
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
-            start_new_session=True,
+            start_new_session=os.name == "posix",
             limit=_STREAM_LIMIT,
         )
 
     async def _kill(self, proc):
         try:
-            os.killpg(proc.pid, signal.SIGTERM)
+            if os.name == "posix":
+                os.killpg(proc.pid, signal.SIGTERM)
+            else:
+                proc.terminate()
         except OSError:
             with contextlib.suppress(OSError):
                 proc.terminate()
@@ -88,7 +94,10 @@ class ShellBridge(Bridge):
         except asyncio.TimeoutError:
             pass
         try:
-            os.killpg(proc.pid, signal.SIGKILL)
+            if os.name == "posix":
+                os.killpg(proc.pid, signal.SIGKILL)
+            else:
+                proc.kill()
         except OSError:
             with contextlib.suppress(OSError):
                 proc.kill()
