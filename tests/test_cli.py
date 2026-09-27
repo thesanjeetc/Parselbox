@@ -78,6 +78,7 @@ def mock_sandbox():
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
         mock_instance.__aexit__ = AsyncMock(return_value=None)
         mock_instance.run_mcp = AsyncMock(return_value=None)
+        mock_instance.close = AsyncMock(return_value=None)
         yield MockClass
 
 

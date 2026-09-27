@@ -6,6 +6,7 @@ from typing import Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.resources.resource import Resource
+from fastmcp.server.middleware import Middleware
 
 try:
     from fastmcp.apps import AppConfig
@@ -103,6 +104,15 @@ app.connect().catch(() => collapse());
 """
 
 RENDERER_URI = f"ui://parselbox/renderer-{hashlib.sha256(RENDERER_HTML.encode()).hexdigest()[:8]}.html"
+
+
+class _SandboxStartup(Middleware):
+    def __init__(self, sandbox):
+        self.sandbox = sandbox
+
+    async def on_initialize(self, context, call_next):
+        await self.sandbox.connect()
+        return await call_next(context)
 
 
 class ParselboxMCP:
@@ -228,11 +238,12 @@ class ParselboxMCP:
         host: str = "0.0.0.0",
         port: int = 9000,
     ):
-        await self.sandbox.connect()
         if transport == "stdio":
+            self.mcp.add_middleware(_SandboxStartup(self.sandbox))
             logger.info("MCP available via stdio")
             await self.mcp.run_async(show_banner=False)
         else:
+            await self.sandbox.connect()
             logger.info(f"MCP available at http://{host}:{port}/mcp")
             await self.mcp.run_async(
                 transport="http",

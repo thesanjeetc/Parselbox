@@ -61,8 +61,10 @@ async def _run_server(
     opts: dict[str, Any], transport: str, host: str, port: int, elicit: bool
 ) -> None:
     sandbox = Parselbox(**opts)
-    async with sandbox:
+    try:
         await sandbox.run_mcp(transport=transport, host=host, port=port, elicit=elicit)
+    finally:
+        await sandbox.close()
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
