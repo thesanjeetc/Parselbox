@@ -1,4 +1,3 @@
-import asyncio
 import json
 import socket
 import sys
@@ -57,30 +56,18 @@ class TestMCPInstructions:
 
 
 class TestStdioStartup:
-    async def test_unused_launch_does_not_take_site_port(self, unused_tcp_port):
+    async def test_idle_clients_do_not_take_site_port(self, unused_tcp_port):
         args = ["-m", "parselbox.cli", "--serve", str(unused_tcp_port)]
-        unused = await asyncio.create_subprocess_exec(
-            sys.executable,
-            *args,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        try:
-
-            async def wait_until_listening_for_mcp():
-                while line := await unused.stderr.readline():
-                    if b"MCP available via stdio" in line:
-                        return
-                pytest.fail("Unused MCP launch exited unexpectedly")
-
-            await asyncio.wait_for(wait_until_listening_for_mcp(), timeout=15)
+        idle_transport = StdioTransport(command=sys.executable, args=args)
+        active_transport = StdioTransport(command=sys.executable, args=args)
+        async with Client(idle_transport, timeout=30) as idle:
+            assert idle.initialize_result.instructions
+            assert [tool.name for tool in await idle.list_tools()] == ["execute_code"]
             with socket.socket() as connection:
                 connection.settimeout(1)
                 assert connection.connect_ex(("127.0.0.1", unused_tcp_port)) != 0
 
-            transport = StdioTransport(command=sys.executable, args=args)
-            async with Client(transport, timeout=30) as client:
+            async with Client(active_transport, timeout=30) as client:
                 result = await client.call_tool(
                     "execute_code",
                     {"code": "open('index.html', 'w').write('<h1>Ready</h1>'); 42"},
@@ -90,15 +77,7 @@ class TestStdioStartup:
                     response = await http.get(f"http://127.0.0.1:{unused_tcp_port}/")
                     assert response.status_code == 200
                     assert "<h1>Ready</h1>" in response.text
-                assert unused.returncode is None
-        finally:
-            unused.stdin.close()
-            try:
-                await asyncio.wait_for(unused.wait(), timeout=10)
-            except asyncio.TimeoutError:
-                unused.kill()
-                await unused.wait()
-        assert unused.returncode == 0
+                assert await idle.ping()
 
 
 class TestMCPExecution:
