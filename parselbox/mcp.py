@@ -37,6 +37,20 @@ import { App } from "https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps
 
 const view = document.getElementById("view");
 let current = null;
+let theme = null;
+
+function applyTheme(root) {
+  if (!root || !theme) return;
+  root.style.colorScheme = theme;
+  root.dataset.theme = theme;
+}
+
+function applyHostTheme(ctx) {
+  if (ctx?.theme !== "light" && ctx?.theme !== "dark") return;
+  theme = ctx.theme;
+  applyTheme(document.documentElement);
+  applyTheme(view.contentDocument?.documentElement);
+}
 
 function collapse() {
   view.style.display = "none";
@@ -63,6 +77,7 @@ function render(html) {
 }
 
 view.addEventListener("load", () => {
+  applyTheme(view.contentDocument?.documentElement);
   fit();
   const doc = view.contentDocument;
   if (doc) new ResizeObserver(fit).observe(doc.documentElement);
@@ -84,6 +99,7 @@ function viewOf(result) {
 }
 
 const app = new App({ name: "parselbox-renderer", version: "1.0.0", autoResize: true });
+app.onhostcontextchanged = applyHostTheme;
 
 app.ontoolresult = (result) => {
   if (result?.isError) {
@@ -96,7 +112,7 @@ app.ontoolresult = (result) => {
   else collapse();
 };
 
-app.connect().catch(() => collapse());
+app.connect().then(() => applyHostTheme(app.getHostContext())).catch(() => collapse());
 </script>
 </body>
 </html>
