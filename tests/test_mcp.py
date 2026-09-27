@@ -1,8 +1,12 @@
 import json
+import socket
+import sys
 
+import httpx
 import pytest
 from fastmcp import Client
 from fastmcp.client.elicitation import ElicitResult
+from fastmcp.client.transports import StdioTransport
 
 from parselbox import Parselbox
 from parselbox.bridge import Bridge
@@ -49,6 +53,31 @@ class TestMCPInstructions:
                     assert client.initialize_result.instructions == expected
         finally:
             sandbox.cache_dir.cleanup()
+
+
+class TestStdioStartup:
+    async def test_idle_clients_do_not_take_site_port(self, unused_tcp_port):
+        args = ["-m", "parselbox.cli", "--serve", str(unused_tcp_port)]
+        idle_transport = StdioTransport(command=sys.executable, args=args)
+        active_transport = StdioTransport(command=sys.executable, args=args)
+        async with Client(idle_transport, timeout=30) as idle:
+            assert idle.initialize_result.instructions
+            assert [tool.name for tool in await idle.list_tools()] == ["execute_code"]
+            with socket.socket() as connection:
+                connection.settimeout(1)
+                assert connection.connect_ex(("127.0.0.1", unused_tcp_port)) != 0
+
+            async with Client(active_transport, timeout=30) as client:
+                result = await client.call_tool(
+                    "execute_code",
+                    {"code": "open('index.html', 'w').write('<h1>Ready</h1>'); 42"},
+                )
+                assert result.structured_content["result"] == 42
+                async with httpx.AsyncClient() as http:
+                    response = await http.get(f"http://127.0.0.1:{unused_tcp_port}/")
+                    assert response.status_code == 200
+                    assert "<h1>Ready</h1>" in response.text
+                assert await idle.ping()
 
 
 class TestMCPExecution:

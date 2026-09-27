@@ -62,6 +62,12 @@ def _runtime(serve: int | None) -> str:
     return f"""\
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5">
+<style>
+@layer base {{
+  :root, body {{ background-color: transparent; }}
+  body {{ margin: 0; }}
+}}
+</style>
 <script>
 window.pbx = {{
   base: {base!r},
